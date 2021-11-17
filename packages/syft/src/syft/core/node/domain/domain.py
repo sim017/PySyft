@@ -75,6 +75,10 @@ from ..common.node_service.tensor_manager.tensor_manager_service import (
 )
 from ..common.node_service.user_auth.user_auth_service import UserLoginService
 from ..common.node_service.user_manager.user_manager_service import UserManagerService
+from ..common.node_service.user_manager.new_user_service import CreateObjectService
+from ..common.node_service.user_manager.new_user_service import UpdateObjectService
+from ..common.node_service.user_manager.new_user_service import RetrieveObjectService
+from ..common.node_service.user_manager.new_user_service import DeleteObjectService
 from ..common.node_service.vpn.vpn_service import VPNConnectService
 from ..common.node_service.vpn.vpn_service import VPNJoinService
 from ..common.node_service.vpn.vpn_service import VPNStatusService
@@ -158,6 +162,11 @@ class Domain(Node):
         self.immediate_services_with_reply.append(TensorManagerService)
         self.immediate_services_with_reply.append(RoleManagerService)
         self.immediate_services_with_reply.append(UserManagerService)
+        self.immediate_services_with_reply.append(CreateObjectService)
+        self.immediate_services_with_reply.append(UpdateObjectService)
+        self.immediate_services_with_reply.append(RetrieveObjectService)
+        self.immediate_services_with_reply.append(DeleteObjectService)
+
         self.immediate_services_with_reply.append(DatasetManagerService)
         # self.immediate_services_with_reply.append(TransferObjectService)
         self.immediate_services_with_reply.append(RequestService)
