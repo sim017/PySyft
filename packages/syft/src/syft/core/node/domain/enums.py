@@ -6,6 +6,14 @@ class PyGridClientEnums(str, Enum):
     ENCODING = "ISO-8859-1"
 
 
+class RestAPICodes(int, Enum):
+    CREATED = 201
+    SUCCESS = 200
+    UNAUTHORIZED = 401
+    BAD_REQUEST = 400
+    CONFLICT = 409
+    NOT_FOUND = 404
+
 class RequestAPIFields(str, Enum):
     ADDRESS = "address"
     UID = "uid"
