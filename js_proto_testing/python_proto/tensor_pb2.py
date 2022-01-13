@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ctensor.proto\"F\n\x06Tensor\x12\x10\n\x08tag_name\x18\x01 \x01(\t\x12\x14\n\x0cpublic_shape\x18\x02 \x03(\x03\x12\x14\n\x0cpublic_dtype\x18\x03 \x01(\tb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0ctensor.proto\x12\x04syft\"0\n\x06Tensor\x12\x10\n\x08tag_name\x18\x01 \x01(\t\x12\x14\n\x0cpublic_dtype\x18\x03 \x01(\tb\x06proto3')
 
 
 
@@ -22,13 +22,13 @@ _TENSOR = DESCRIPTOR.message_types_by_name['Tensor']
 Tensor = _reflection.GeneratedProtocolMessageType('Tensor', (_message.Message,), {
   'DESCRIPTOR' : _TENSOR,
   '__module__' : 'tensor_pb2'
-  # @@protoc_insertion_point(class_scope:Tensor)
+  # @@protoc_insertion_point(class_scope:syft.Tensor)
   })
 _sym_db.RegisterMessage(Tensor)
 
 if _descriptor._USE_C_DESCRIPTORS == False:
 
   DESCRIPTOR._options = None
-  _TENSOR._serialized_start=16
-  _TENSOR._serialized_end=86
+  _TENSOR._serialized_start=22
+  _TENSOR._serialized_end=70
 # @@protoc_insertion_point(module_scope)

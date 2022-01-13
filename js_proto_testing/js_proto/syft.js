@@ -12,7 +12,7 @@
 // @ts-nocheck
 
 
-goog.provide('proto.Tensor');
+goog.provide('proto.syft.Tensor');
 
 goog.require('jspb.BinaryReader');
 goog.require('jspb.BinaryWriter');
@@ -28,24 +28,17 @@ goog.require('jspb.Message');
  * @extends {jspb.Message}
  * @constructor
  */
-proto.Tensor = function(opt_data) {
-  jspb.Message.initialize(this, opt_data, 0, -1, proto.Tensor.repeatedFields_, null);
+proto.syft.Tensor = function(opt_data) {
+  jspb.Message.initialize(this, opt_data, 0, -1, null, null);
 };
-goog.inherits(proto.Tensor, jspb.Message);
+goog.inherits(proto.syft.Tensor, jspb.Message);
 if (goog.DEBUG && !COMPILED) {
   /**
    * @public
    * @override
    */
-  proto.Tensor.displayName = 'proto.Tensor';
+  proto.syft.Tensor.displayName = 'proto.syft.Tensor';
 }
-
-/**
- * List of repeated fields within this message type.
- * @private {!Array<number>}
- * @const
- */
-proto.Tensor.repeatedFields_ = [2];
 
 
 
@@ -62,8 +55,8 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
  *     http://goto/soy-param-migration
  * @return {!Object}
  */
-proto.Tensor.prototype.toObject = function(opt_includeInstance) {
-  return proto.Tensor.toObject(opt_includeInstance, this);
+proto.syft.Tensor.prototype.toObject = function(opt_includeInstance) {
+  return proto.syft.Tensor.toObject(opt_includeInstance, this);
 };
 
 
@@ -72,14 +65,13 @@ proto.Tensor.prototype.toObject = function(opt_includeInstance) {
  * @param {boolean|undefined} includeInstance Deprecated. Whether to include
  *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
- * @param {!proto.Tensor} msg The msg instance to transform.
+ * @param {!proto.syft.Tensor} msg The msg instance to transform.
  * @return {!Object}
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.Tensor.toObject = function(includeInstance, msg) {
+proto.syft.Tensor.toObject = function(includeInstance, msg) {
   var f, obj = {
     tagName: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    publicShapeList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
     publicDtype: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
@@ -94,23 +86,23 @@ proto.Tensor.toObject = function(includeInstance, msg) {
 /**
  * Deserializes binary data (in protobuf wire format).
  * @param {jspb.ByteSource} bytes The bytes to deserialize.
- * @return {!proto.Tensor}
+ * @return {!proto.syft.Tensor}
  */
-proto.Tensor.deserializeBinary = function(bytes) {
+proto.syft.Tensor.deserializeBinary = function(bytes) {
   var reader = new jspb.BinaryReader(bytes);
-  var msg = new proto.Tensor;
-  return proto.Tensor.deserializeBinaryFromReader(msg, reader);
+  var msg = new proto.syft.Tensor;
+  return proto.syft.Tensor.deserializeBinaryFromReader(msg, reader);
 };
 
 
 /**
  * Deserializes binary data (in protobuf wire format) from the
  * given reader into the given message object.
- * @param {!proto.Tensor} msg The message object to deserialize into.
+ * @param {!proto.syft.Tensor} msg The message object to deserialize into.
  * @param {!jspb.BinaryReader} reader The BinaryReader to use.
- * @return {!proto.Tensor}
+ * @return {!proto.syft.Tensor}
  */
-proto.Tensor.deserializeBinaryFromReader = function(msg, reader) {
+proto.syft.Tensor.deserializeBinaryFromReader = function(msg, reader) {
   while (reader.nextField()) {
     if (reader.isEndGroup()) {
       break;
@@ -120,12 +112,6 @@ proto.Tensor.deserializeBinaryFromReader = function(msg, reader) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
       msg.setTagName(value);
-      break;
-    case 2:
-      var values = /** @type {!Array<number>} */ (reader.isDelimited() ? reader.readPackedInt64() : [reader.readInt64()]);
-      for (var i = 0; i < values.length; i++) {
-        msg.addPublicShape(values[i]);
-      }
       break;
     case 3:
       var value = /** @type {string} */ (reader.readString());
@@ -144,9 +130,9 @@ proto.Tensor.deserializeBinaryFromReader = function(msg, reader) {
  * Serializes the message to binary data (in protobuf wire format).
  * @return {!Uint8Array}
  */
-proto.Tensor.prototype.serializeBinary = function() {
+proto.syft.Tensor.prototype.serializeBinary = function() {
   var writer = new jspb.BinaryWriter();
-  proto.Tensor.serializeBinaryToWriter(this, writer);
+  proto.syft.Tensor.serializeBinaryToWriter(this, writer);
   return writer.getResultBuffer();
 };
 
@@ -154,23 +140,16 @@ proto.Tensor.prototype.serializeBinary = function() {
 /**
  * Serializes the given message to binary data (in protobuf wire
  * format), writing to the given BinaryWriter.
- * @param {!proto.Tensor} message
+ * @param {!proto.syft.Tensor} message
  * @param {!jspb.BinaryWriter} writer
  * @suppress {unusedLocalVariables} f is only used for nested messages
  */
-proto.Tensor.serializeBinaryToWriter = function(message, writer) {
+proto.syft.Tensor.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
   f = message.getTagName();
   if (f.length > 0) {
     writer.writeString(
       1,
-      f
-    );
-  }
-  f = message.getPublicShapeList();
-  if (f.length > 0) {
-    writer.writePackedInt64(
-      2,
       f
     );
   }
@@ -188,54 +167,17 @@ proto.Tensor.serializeBinaryToWriter = function(message, writer) {
  * optional string tag_name = 1;
  * @return {string}
  */
-proto.Tensor.prototype.getTagName = function() {
+proto.syft.Tensor.prototype.getTagName = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
 /**
  * @param {string} value
- * @return {!proto.Tensor} returns this
+ * @return {!proto.syft.Tensor} returns this
  */
-proto.Tensor.prototype.setTagName = function(value) {
+proto.syft.Tensor.prototype.setTagName = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
-};
-
-
-/**
- * repeated int64 public_shape = 2;
- * @return {!Array<number>}
- */
-proto.Tensor.prototype.getPublicShapeList = function() {
-  return /** @type {!Array<number>} */ (jspb.Message.getRepeatedField(this, 2));
-};
-
-
-/**
- * @param {!Array<number>} value
- * @return {!proto.Tensor} returns this
- */
-proto.Tensor.prototype.setPublicShapeList = function(value) {
-  return jspb.Message.setField(this, 2, value || []);
-};
-
-
-/**
- * @param {number} value
- * @param {number=} opt_index
- * @return {!proto.Tensor} returns this
- */
-proto.Tensor.prototype.addPublicShape = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
-};
-
-
-/**
- * Clears the list making it empty but non-null.
- * @return {!proto.Tensor} returns this
- */
-proto.Tensor.prototype.clearPublicShapeList = function() {
-  return this.setPublicShapeList([]);
 };
 
 
@@ -243,16 +185,16 @@ proto.Tensor.prototype.clearPublicShapeList = function() {
  * optional string public_dtype = 3;
  * @return {string}
  */
-proto.Tensor.prototype.getPublicDtype = function() {
+proto.syft.Tensor.prototype.getPublicDtype = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
 };
 
 
 /**
  * @param {string} value
- * @return {!proto.Tensor} returns this
+ * @return {!proto.syft.Tensor} returns this
  */
-proto.Tensor.prototype.setPublicDtype = function(value) {
+proto.syft.Tensor.prototype.setPublicDtype = function(value) {
   return jspb.Message.setProto3StringField(this, 3, value);
 };
 
