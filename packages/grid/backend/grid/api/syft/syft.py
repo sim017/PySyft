@@ -7,13 +7,18 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Request
 from fastapi import Response
+from pympler.asizeof import asizeof
 
 # syft absolute
 from syft import deserialize
 from syft import serialize
 from syft.core.common.message import SignedImmediateSyftMessageWithReply
 from syft.core.common.message import SignedImmediateSyftMessageWithoutReply
+from syft.core.node.common.node_service.dataset_manager.dataset_manager_messages import (
+    CreateDatasetMessage,
+)
 from syft.core.node.domain.enums import RequestAPIFields
+from syft.logger import debug
 
 # grid absolute
 from grid.api.dependencies.current_user import get_current_user
@@ -21,6 +26,11 @@ from grid.api.users.models import UserPrivate
 from grid.core.celery_app import celery_app
 from grid.core.config import settings
 from grid.core.node import node
+
+
+def size(obj) -> int:
+    return asizeof(obj) / (1024 * 1024)  # MBs
+
 
 router = APIRouter()
 
@@ -54,10 +64,21 @@ async def syft_route(
     #    limit: int = 100,
     #    current_user: models.User = Depends(get_current_active_user),
 ) -> Any:
+    debug(f"load_dataset syft node got SyftMessage")
     data = await request.body()
+    debug(f"load_dataset syft node got request body size: {size(data)}")
+    debug(f"load_dataset deserialize object")
+    # 1 second for 100mb
     obj_msg = deserialize(blob=data, from_bytes=True)
+    debug(
+        f"load_dataset finished deserializing object, {type(obj_msg)}, size: {size(obj_msg)}"
+    )
+
     if isinstance(obj_msg, SignedImmediateSyftMessageWithReply):
+        if isinstance(obj_msg, CreateDatasetMessage):
+            debug(f"we found a CreateDatasetMessage")
         reply = node.recv_immediate_msg_with_reply(msg=obj_msg)
+        debug(f"Finished processing {type(obj_msg)}")
         r = Response(
             serialize(obj=reply, to_bytes=True),
             media_type="application/octet-stream",

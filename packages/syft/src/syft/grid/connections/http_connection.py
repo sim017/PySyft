@@ -4,6 +4,7 @@ from typing import Optional
 from typing import Union
 
 # third party
+from pympler.asizeof import asizeof
 import requests
 
 # relative
@@ -15,9 +16,17 @@ from ...core.common.message import SyftMessage
 from ...core.common.serde.deserialize import _deserialize
 from ...core.common.serde.serialize import _serialize
 from ...core.io.connection import ClientConnection
+from ...core.node.common.node_service.dataset_manager.dataset_manager_messages import (
+    CreateDatasetMessage,
+)
 from ...core.node.domain.enums import RequestAPIFields
 from ...core.node.domain.exceptions import RequestAPIException
+from ...logger import debug
 from ...proto.core.node.common.metadata_pb2 import Metadata as Metadata_PB
+
+
+def size(obj) -> int:
+    return asizeof(obj) / (1024 * 1024)  # MBs
 
 
 class HTTPConnection(ClientConnection):
@@ -99,14 +108,24 @@ class HTTPConnection(ClientConnection):
         :rtype: requests.Response
         """
 
+        if isinstance(msg, CreateDatasetMessage):
+            debug(f"load_dataset serializing CreateDatasetMessage: size {size(msg)}")
+
         # Perform HTTP request using base_url as a root address
         data_bytes: bytes = _serialize(msg, to_bytes=True)  # type: ignore
+        if isinstance(msg, CreateDatasetMessage):
+            debug(
+                f"load_dataset CreateDatasetMessage has been serialized bytes size: {size(data_bytes)}"
+            )
+            debug(f"load_dataset POSTING data to server")
         r = requests.post(
             url=str(self.base_url),
             data=data_bytes,
             headers={"Content-Type": "application/octet-stream"},
             timeout=timeout,
         )
+        if isinstance(msg, CreateDatasetMessage):
+            debug(f"load_dataset finished sending bytes")
 
         # Return request's response object
         # r.text provides the response body as a str

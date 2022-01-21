@@ -11,7 +11,16 @@ from typing import Union
 # third party
 from nacl.signing import VerifyKey
 import numpy as np
+from pympler.asizeof import asizeof
 import torch as th
+
+# relative
+from ......logger import debug
+
+
+def size(obj) -> int:
+    return asizeof(obj) / (1024 * 1024)  # MBs
+
 
 # relative
 from ...... import deserialize
@@ -87,13 +96,22 @@ def _handle_dataset_creation_grid_ui(
 def _handle_dataset_creation_syft(
     msg: CreateDatasetMessage, node: DomainInterface, verify_key: VerifyKey
 ) -> None:
+    debug(f"load_dataset _handle_dataset_creation_syft {size(msg)} {type(msg.dataset)}")
+    # 7 seconds to deserialize the inner numpy array of 10,000 x 10,000
     result = deserialize(msg.dataset, from_bytes=True)
+    debug(f"load_dataset dataset deserialized {size(msg)}, {type(result)}")
     dataset_id = msg.metadata.get("dataset_id")
     if not dataset_id:
+        debug(
+            f"load_dataset saving metadata: size {size(dataset_id)} {type(dataset_id)}"
+        )
         dataset_id = node.datasets.register(**msg.metadata)
 
+    debug(f"load_dataset looping through data")
     for table_name, table in result.items():
+        debug(f"load_dataset making UID")
         id_at_location = UID()
+        debug(f"load_dataset making StorableObject")
         storable = StorableObject(
             id=id_at_location,
             data=table,
@@ -101,7 +119,14 @@ def _handle_dataset_creation_syft(
             search_permissions={VERIFYALL: None},
             read_permissions={node.verify_key: node.id, verify_key: None},
         )
+        debug(f"load_dataset StorableObject created: size {size(storable)}")
+        debug(f"load_dataset saving storable to kv store")
+        # 10 seconds to save to the database
+        # probably some time to serialize first
         node.store[storable.id] = storable
+        debug(f"load_dataset FINISHED saving storable to kv store")
+
+        debug(f"load_dataset adding datasets table entry")
         node.datasets.add(
             name=table_name,
             dataset_id=str(dataset_id),
@@ -109,6 +134,7 @@ def _handle_dataset_creation_syft(
             dtype=str(table.__class__.__name__),
             shape=str(table.shape),
         )
+        debug(f"load_dataset finished adding dataset")
 
 
 def create_dataset_msg(
@@ -116,7 +142,9 @@ def create_dataset_msg(
     node: DomainInterface,
     verify_key: VerifyKey,
 ) -> SuccessResponseMessage:
+    debug(f"load_dataset Node finally receieved CreateDatasetMessage")
     # Check key permissions
+    debug(f"load_dataset check permissions of user")
     _allowed = node.users.can_upload_data(verify_key=verify_key)
 
     if not _allowed:

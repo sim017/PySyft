@@ -16,6 +16,7 @@ import names
 import pandas as pd
 
 # relative
+from ....logger import debug
 from ....logger import traceback_and_raise
 from ....util import validate_field
 from ...common.message import SyftMessage
@@ -669,6 +670,7 @@ class DomainClient(Client):
                     # if pref == "n":
                     #     raise Exception("Dataset loading cancelled.")
 
+        debug(f"load_dataset Started preparing data for sending")
         metadata["name"] = bytes(name, "utf-8")  # type: ignore
         metadata["description"] = bytes(description, "utf-8")  # type: ignore
 
@@ -679,7 +681,9 @@ class DomainClient(Client):
         assets = downcast(assets)
         metadata = downcast(metadata)
 
+        debug(f"load_dataset Serializing whole object")
         binary_dataset = serialize(assets, to_bytes=True)
+        debug(f"load_dataset Finished serializing whole object")
 
         sys.stdout.write("\rLoading dataset... uploading...                        ")
         self.datasets.create_syft(

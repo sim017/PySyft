@@ -65,7 +65,8 @@ COPY syft/src /app/syft/src
 
 # install syft
 RUN --mount=type=cache,target=/root/.cache \
-  pip install --user -e /app/syft
+  pip install --user -e /app/syft \
+  pip install pympler
 
 # change to worker-start.sh or start-reload.sh as needed
 CMD ["bash", "start.sh"]

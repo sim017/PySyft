@@ -8,13 +8,20 @@ from typing import Type
 
 # third party
 from pandas import DataFrame
+from pympler.asizeof import asizeof
 
 # relative
+from .....logger import debug
 from ....common.message import SyftMessage
 from ...abstract.node import AbstractNodeClient
 from ...domain.enums import RequestAPIFields
 from ..action.exception_action import ExceptionMessage
+from ..node_service.dataset_manager.dataset_manager_messages import CreateDatasetMessage
 from ..node_service.generic_payload.messages import GenericPayloadMessageWithReply
+
+
+def size(obj: Any) -> int:
+    return asizeof(obj) / (1024 * 1024)  # MBs
 
 
 class RequestAPI:
@@ -40,6 +47,7 @@ class RequestAPI:
         response = self.perform_api_request(
             syft_msg=self._create_message, content=kwargs  # type: ignore
         )
+        debug(f"load_dataset RequestAPI create Finished", response)
         logging.info(response.resp_msg)
 
     def get(self, **kwargs: Any) -> Any:
@@ -95,9 +103,13 @@ class RequestAPI:
         content[RequestAPIFields.ADDRESS] = self.client.address
         content[RequestAPIFields.REPLY_TO] = self.client.address
 
+        if isinstance(syft_msg_constructor, CreateDatasetMessage):
+            debug(f"load_dataset constructing a CreateDatasetMessage")
         signed_msg = syft_msg_constructor(**content).sign(
             signing_key=self.client.signing_key
         )  # type: ignore
+        if isinstance(syft_msg_constructor, CreateDatasetMessage):
+            debug(f"load_dataset signed CreateDatasetMessage size: {size(signed_msg)}")
         response = self.client.send_immediate_msg_with_reply(msg=signed_msg)
         if isinstance(response, ExceptionMessage):
             raise response.exception_type
