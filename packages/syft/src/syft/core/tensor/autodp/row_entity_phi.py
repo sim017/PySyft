@@ -25,6 +25,7 @@ from ....proto.core.adp.phi_tensor_pb2 import (
     RowEntityPhiTensor as RowEntityPhiTensor_PB,
 )
 from ....util import parallel_execution
+from ....util import split_rows
 from ...adp.vm_private_scalar_manager import VirtualMachinePrivateScalarManager
 from ...common.serde.deserialize import _deserialize as deserialize
 from ...common.serde.serializable import serializable
@@ -49,18 +50,6 @@ def row_deserialize(*rows: Deserializeable) -> List[Any]:
     output = []
     for row in rows:
         output.append(deserialize(row, from_bytes=True))
-    return output
-
-
-def split_rows(rows: Sequence, cpu_count: int) -> List:
-    n = len(rows)
-    a, b = divmod(n, cpu_count)
-    start = 0
-    output = []
-    for i in range(cpu_count):
-        end = start + a + (1 if b - i - 1 >= 0 else 0)
-        output.append(rows[start:end])
-        start = end
     return output
 
 

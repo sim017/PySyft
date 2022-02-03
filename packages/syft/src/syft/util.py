@@ -15,6 +15,7 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Sequence
 from typing import Type
 from typing import Union
 
@@ -526,6 +527,18 @@ def initializer(event_loop: Optional[BaseSelectorEventLoop] = None) -> None:
     """
     if event_loop:
         asyncio.set_event_loop(event_loop)
+
+
+def split_rows(rows: Sequence, cpu_count: int) -> List:
+    n = len(rows)
+    a, b = divmod(n, cpu_count)
+    start = 0
+    output = []
+    for i in range(cpu_count):
+        end = start + a + (1 if b - i - 1 >= 0 else 0)
+        output.append(rows[start:end])
+        start = end
+    return output
 
 
 # local scope functions cant be pickled so this needs to be global

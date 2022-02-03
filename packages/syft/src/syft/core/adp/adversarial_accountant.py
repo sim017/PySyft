@@ -6,6 +6,7 @@
 
 # stdlib
 import math
+import multiprocessing as mp
 from typing import Dict as TypeDict
 from typing import KeysView as TypeKeysView
 from typing import List as TypeList
@@ -20,12 +21,30 @@ from nacl.signing import VerifyKey
 from sqlalchemy.engine import Engine
 
 # relative
+from ...util import parallel_execution
+from ...util import split_rows
 from ..node.common.node_manager.ledger_manager import AbstractLedger
 from ..node.common.node_manager.ledger_manager import DatabaseLedger
 from ..node.common.node_manager.ledger_manager import DictLedger
 from .entity import DataSubjectGroup
 from .entity import Entity
 from .idp_gaussian_mechanism import iDPGaussianMechanism
+
+
+def parallel_has_budget(
+    *args,
+    **kwargs,
+) -> bool:
+    results = []
+    # for each batch
+    for a in args:
+        # get self
+        _self = a[0]
+        # run the normal has_budget
+        res = _self.has_budget(*a[1:], **kwargs)
+        # collect results
+        results.append(res)
+    return results
 
 
 class AdversarialAccountant:
@@ -233,27 +252,48 @@ class AdversarialAccountant:
         returned_epsilon_is_private: bool = False,
     ) -> Union[TypeSet[Entity], TypeSet[DataSubjectGroup]]:
         entities = set()
+        # get all the unique entities
+        for entity, _ in temp_entities.items():
+            if isinstance(entity, DataSubjectGroup):
+                entities.union(entity.entity_set)
+            else:
+                entities.add(entity)
 
+        entities = list(entities)
+
+        has_budget_args = [
+            (self, entity, user_key, returned_epsilon_is_private) for entity in entities
+        ]
+        entity_lookup = {}
+
+        args = split_rows(has_budget_args, cpu_count=mp.cpu_count())
+
+        entity_has_budget_bools = parallel_execution(
+            parallel_has_budget, cpu_bound=False
+        )(args)
+
+        flattened_bools = []
+        for nested_bools in entity_has_budget_bools:
+            flattened_bools.extend(nested_bools)
+
+        for e, b in zip(entities, flattened_bools):
+            entity_lookup[e] = b
+
+        entities = set()
         for entity, _ in temp_entities.items():
             if isinstance(entity, DataSubjectGroup):
                 for e in entity.entity_set:
-                    if not self.has_budget(
-                        e,
-                        user_key=user_key,
-                        returned_epsilon_is_private=returned_epsilon_is_private,
-                    ):
+                    if entity_lookup[e]:
                         entities.add(
                             entity
                         )  # Leave out the whole group if ANY of its entities are over budget
+                        break
             elif isinstance(entity, Entity):
-                if not self.has_budget(
-                    entity,
-                    user_key=user_key,
-                    returned_epsilon_is_private=returned_epsilon_is_private,
-                ):
+                if entity_lookup[entity]:
                     entities.add(entity)  # type: ignore
-            else:
-                raise Exception
+                else:
+                    raise Exception
+
         return entities
 
     # prints entity and its epsilon value
