@@ -24,6 +24,12 @@ from ..common.serde.serialize import _serialize as serialize
 from .entity import Entity
 from .scalar.gamma_scalar import GammaScalar
 
+prime_numbers = {}
+for index, prime in enumerate(list(sp.sieve.primerange(15485867))):  # this populates with 1M prime numbers
+    prime_numbers[index] = prime
+
+global prime_numbers
+
 
 @serializable()
 class PrimeFactory:
@@ -36,8 +42,14 @@ class PrimeFactory:
     security leaks wherein two tensors think two different symbols in fact are the
     same symbol."""
 
-    def __init__(self, prime: int = 1) -> None:
-        self.prev_prime = prime
+    def __init__(self, prime_index: int = 1) -> None:
+        self.prev_prime_index = prime_index
+
+    def get(self, index) -> int:
+        print("Is this running?")
+        while index > len(prime_numbers):
+            prime_numbers[len(prime_numbers)] = sp.nextprime(prime_numbers[len(prime_numbers) - 1])
+        return prime_numbers[index]
 
     def next(self) -> int:
         self.prev_prime = sp.nextprime(self.prev_prime)
@@ -62,6 +74,10 @@ class PrimeFactory:
         return PrimeFactory_PB
 
 
+global_factory = PrimeFactory()
+global global_factory
+
+
 @serializable()
 class VirtualMachinePrivateScalarManager:
     def __init__(
@@ -70,15 +86,14 @@ class VirtualMachinePrivateScalarManager:
         prime2symbol: Optional[Dict[Any, Any]] = None,
     ) -> None:
 
-        self.prime_factory = (
-            prime_factory if prime_factory is not None else PrimeFactory()
-        )
+        self.prime_factory = global_factory
 
         if prime2symbol is None:
             prime2symbol = {}
 
         self.prime2symbol = prime2symbol
         self.hash_cache: Optional[int] = None
+        self.index = 0
 
     def get_symbol(
         self,
@@ -90,13 +105,15 @@ class VirtualMachinePrivateScalarManager:
         # NOTE: this is overly conservative because it always creates a new scalar even when
         # a computationally equivalent one might exist somewhere already.
 
+
         gs = GammaScalar(
             min_val=min_val,
             value=value,
             max_val=max_val,
             entity=entity,
-            prime=self.prime_factory.next(),
+            prime=self.prime_factory.get(self.index),
         )
+        self.index += 1
         self.prime2symbol[gs.prime] = gs
         self.hash_cache = None
         return gs.prime
