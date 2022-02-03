@@ -24,11 +24,11 @@ from ..common.serde.serialize import _serialize as serialize
 from .entity import Entity
 from .scalar.gamma_scalar import GammaScalar
 
+
+global prime_numbers
 prime_numbers = {}
 for index, prime in enumerate(list(sp.sieve.primerange(15485867))):  # this populates with 1M prime numbers
     prime_numbers[index] = prime
-
-global prime_numbers
 
 
 @serializable()
@@ -46,7 +46,7 @@ class PrimeFactory:
         self.prev_prime_index = prime_index
 
     def get(self, index) -> int:
-        print("Is this running?")
+        # print("Is this running?")
         while index > len(prime_numbers):
             prime_numbers[len(prime_numbers)] = sp.nextprime(prime_numbers[len(prime_numbers) - 1])
         return prime_numbers[index]
@@ -74,8 +74,8 @@ class PrimeFactory:
         return PrimeFactory_PB
 
 
-global_factory = PrimeFactory()
 global global_factory
+global_factory = PrimeFactory()
 
 
 @serializable()
