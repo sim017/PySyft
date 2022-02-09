@@ -3,6 +3,7 @@ from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Type
 from typing import Union
 
 # third party
@@ -20,29 +21,20 @@ from ...exceptions import AuthorizationError
 from ...exceptions import MissingRequestKeyError
 from ...exceptions import UserNotFoundError
 from ...node_table.utils import model_to_json
-from ..generic_payload.syft_message import SyftMessage
-from ..permissions import check_permissions
+from ..generic_payload.syft_message import NewSyftMessage
+from ..permissions import BasePermission
+from .user_permissions import IsNodeDaaEnabled
+from .user_permissions import UserCanCreateUsers
 from .user_permissions import UserCanTriageRequest
+from .user_permissions import UserIsOwner
 
 
 @serializable(recursive_serde=True)
 @final
-class GetUserMessage(SyftMessage, DomainMessageRegistry):
-    permission_classes = [UserCanTriageRequest]
-
-    @check_permissions(permission_classes=permission_classes)
+class GetUserMessage(NewSyftMessage, DomainMessageRegistry):
     def run(
         self, node: NodeServiceInterface, verify_key: Optional[VerifyKey] = None
-    ) -> Union[List, Dict[str, Any]]:
-        if not verify_key:
-            return {}
-
-        # TODO: Segregate permissions to a different level (make it composable)
-        # _allowed = node.users.can_triage_requests(verify_key=verify_key)  # type: ignore
-        # if not _allowed:
-        #     raise AuthorizationError(
-        #         "get_user_msg You're not allowed to get User information!"
-        #     )
+    ) -> Dict[str, Any]:
 
         # Extract User Columns
         user = node.users.first(id=self.kwargs["user_id"])  # type: ignore
@@ -60,107 +52,99 @@ class GetUserMessage(SyftMessage, DomainMessageRegistry):
         )
         return _msg
 
+    def get_permissions(self) -> List[Type[BasePermission]]:
+        return [UserCanTriageRequest]
+
 
 @serializable(recursive_serde=True)
 @final
-class GetUsersMessage(SyftMessage, DomainMessageRegistry):
-    def run(  # type: ignore
+class GetUsersMessage(NewSyftMessage, DomainMessageRegistry):
+    def run(
         self, node: NodeServiceInterface, verify_key: Optional[VerifyKey] = None
-    ) -> Union[List, Dict[str, Any]]:
-        # Check key permissions
-        _allowed = node.users.can_triage_requests(verify_key=verify_key)
-        if not _allowed:
-            raise AuthorizationError(
-                "get_all_users_msg You're not allowed to get User information!"
+    ) -> Dict[str, Any]:
+        users = node.users.all()
+        _msg = []
+        for user in users:
+            _user_json = model_to_json(user)
+            # Use role name instead of role ID.
+            _user_json["role"] = node.roles.first(id=_user_json["role"]).name
+
+            # Remove private key
+            del _user_json["private_key"]
+
+            # Remaining Budget
+            # TODO: Rename it from budget_spent to remaining budget
+            _user_json["budget_spent"] = node.acc.get_remaining_budget(  # type: ignore
+                user_key=VerifyKey(user.verify_key.encode("utf-8"), encoder=HexEncoder),
+                returned_epsilon_is_private=False,
             )
-        else:
-            # Get All Users
-            users = node.users.all()
-            _msg = []
-            for user in users:
-                _user_json = model_to_json(user)
-                # Use role name instead of role ID.
-                _user_json["role"] = node.roles.first(id=_user_json["role"]).name
+            _msg.append(_user_json)
 
-                # Remove private key
-                del _user_json["private_key"]
+        _msgs = {"users": _msg}
+        return _msgs
 
-                # Remaining Budget
-                # TODO:
-                # Rename it from budget_spent to remaining budget
-                _user_json["budget_spent"] = node.acc.get_remaining_budget(  # type: ignore
-                    user_key=VerifyKey(
-                        user.verify_key.encode("utf-8"), encoder=HexEncoder
-                    ),
-                    returned_epsilon_is_private=False,
-                )
-                _msg.append(_user_json)
-
-            return _msg
+    def get_permissions(self) -> List[Type[BasePermission]]:
+        return [UserCanTriageRequest]
 
 
 @serializable(recursive_serde=True)
 @final
-class UpdateUserMessage(SyftMessage, DomainMessageRegistry):
-    def run(  # type: ignore
-        self, node: NodeServiceInterface, verify_key: Optional[VerifyKey] = None
-    ) -> Union[List, Dict[str, Any]]:
-        # Check key permissions
+class UpdateUserMessage(NewSyftMessage, DomainMessageRegistry):
+    @staticmethod
+    def __validate_message(message: object) -> bool:
+        _valid_parameters = (
+            hasattr(message, "email")
+            or hasattr(message, "password")
+            or hasattr(message, "role")
+            or hasattr(message, "groups")
+            or hasattr(message, "name")
+            or hasattr(message, "budget")
+        )
+        return _valid_parameters
 
-        if not verify_key:
-            raise AuthorizationError("You're not allowed to change other user data!")
+    def run(
+        self, node: NodeServiceInterface, verify_key: Optional[VerifyKey] = None
+    ) -> Dict[str, Any]:
 
         msg = type("message", (object,), self.kwargs.upcast())()
 
-        _valid_parameters = (
-            msg.email
-            or msg.password
-            or msg.role
-            or msg.groups
-            or msg.name
-            or msg.budget
-        )
-        _allowed = node.users.can_create_users(verify_key=verify_key)
         # Change own information
         if msg.user_id == 0:
             msg.user_id = int(node.users.get_user(verify_key).id)  # type: ignore
 
         _valid_user = node.users.contain(id=msg.user_id)
 
-        if not _valid_parameters:
+        if not self.__validate_message(msg):
             raise MissingRequestKeyError(
-                "Missing json fields ( email,password,role,groups, name )"
+                "Missing json fields (email, password, role, groups, name)"
             )
-
-        if not _allowed:
-            raise AuthorizationError("You're not allowed to change other user data!")
 
         if not _valid_user:
             raise UserNotFoundError
 
-        if msg.institution:
+        if hasattr(msg, "institution"):
             node.users.set(user_id=str(msg.user_id), institution=msg.institution)
 
-        if msg.website:
+        if hasattr(msg, "website"):
             node.users.set(user_id=str(msg.user_id), website=msg.website)
 
-        if msg.budget:
+        if hasattr(msg, "budget"):
             node.users.set(user_id=str(msg.user_id), budget=msg.budget)
 
         # Change Email Request
-        elif msg.email:
+        elif hasattr(msg, "email"):
             node.users.set(user_id=str(msg.user_id), email=msg.email)
 
         # Change Password Request
-        elif msg.password:
+        elif hasattr(msg, "password"):
             node.users.set(user_id=str(msg.user_id), password=msg.password)
 
         # Change Name Request
-        elif msg.name:
+        elif hasattr(msg, "name"):
             node.users.set(user_id=str(msg.user_id), name=msg.name)
 
         # Change Role Request
-        elif msg.role:
+        elif hasattr(msg, "role"):
             target_user = node.users.first(id=msg.user_id)
             _allowed = (
                 msg.role != node.roles.owner_role.name  # Target Role != Owner
@@ -203,25 +187,21 @@ class UpdateUserMessage(SyftMessage, DomainMessageRegistry):
 
         return {"resp_msg": "User updated successfully!"}
 
+    def get_permissions(self) -> List[Union[Type[BasePermission], Any]]:
+        return [UserCanCreateUsers | UserIsOwner]
+
 
 @serializable(recursive_serde=True)
 @final
-class CreateUserMessage(SyftMessage, DomainMessageRegistry):
-    def run(  # type: ignore
+class CreateUserMessage(NewSyftMessage, DomainMessageRegistry):
+    def run(  # type: ignore[override]
         self, node: DomainInterface, verify_key: Optional[VerifyKey] = None
-    ) -> Union[List, Dict[str, Any]]:
-        if not verify_key:
-            raise AuthorizationError("You're not allowed to change other user data!")
+    ) -> Dict[str, Any]:
 
-        msg = type("message", (object,), dict(self.kwargs.upcast()))()
-        # Check key permissions
-        if node.setup.first(domain_name=node.name).daa and not msg.daa_pdf:
-            raise AuthorizationError(
-                message="You can't apply a new User without a DAA document!"
-            )
+        msg = type("message", (object,), dict(self.kwargs.upcast()))()  # type: ignore
 
         # Check if email/password fields are empty
-        if not msg.email or not msg.password:
+        if not getattr(msg, "email", "") or not getattr(msg, "password", ""):
             raise MissingRequestKeyError(
                 message="Invalid request payload, empty fields (email/password)!"
             )
@@ -247,45 +227,27 @@ class CreateUserMessage(SyftMessage, DomainMessageRegistry):
             budget=msg.budget,
         )
 
-        user_role_id = -1
-        try:
-            user_role_id = node.users.role(verify_key=verify_key).id
-        except Exception as e:
-            print("verify_key not in db", e)
-
-        if node.roles.can_create_users(role_id=user_role_id):
-            node.users.process_user_application(
-                candidate_id=app_id, status="accepted", verify_key=verify_key
-            )
+        node.users.process_user_application(
+            candidate_id=app_id, status="accepted", verify_key=verify_key
+        )
 
         return {"resp_msg": "User created successfully!"}
+
+    def get_permissions(self) -> List[Type[BasePermission]]:
+        return [UserCanCreateUsers, IsNodeDaaEnabled]
 
 
 @serializable(recursive_serde=True)
 @final
-class DeleteUserMessage(SyftMessage, DomainMessageRegistry):
+class DeleteUserMessage(NewSyftMessage, DomainMessageRegistry):
     def run(  # type: ignore
         self, node: NodeServiceInterface, verify_key: Optional[VerifyKey] = None
-    ) -> Union[List, Dict[str, Any]]:
-        if not verify_key:
-            raise AuthorizationError("You're not allowed to change other user data!")
+    ) -> Dict[str, Any]:
 
         msg = type("message", (object,), dict(self.kwargs))()
-
-        _target_user = node.users.first(id=msg.user_id)
-        _not_owner = (
-            node.roles.first(id=_target_user.role).name != node.roles.owner_role.name
-        )
-
-        _allowed = (
-            node.users.can_create_users(verify_key=verify_key)  # Key Permission
-            and _not_owner  # Target user isn't the node owner
-        )
-        if _allowed:
-            node.users.delete(id=msg.user_id)
-        else:
-            raise AuthorizationError(
-                "You're not allowed to delete this user information!"
-            )
+        node.users.delete(id=msg.user_id)
 
         return {"resp_msg": "User deleted successfully!"}
+
+    def get_permissions(self) -> Union[Type[BasePermission], Any]:
+        return [UserCanCreateUsers, ~UserIsOwner]

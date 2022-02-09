@@ -1,8 +1,10 @@
 # stdlib
-import os
 from typing import List
 
-if bool(os.getenv("USE_NEW_SERVICE", True)):
+# syft absolute
+from syft import flags
+
+if flags.USE_NEW_SERVICE:
     # syft absolute
     from syft.core.node.common.node_service.user_manager.new_user_messages import (
         CreateUserMessage,
@@ -84,9 +86,12 @@ def process_applicant_request(
 
 
 def get_all_users(current_user: UserPrivate) -> List[User]:
-    return send_message_with_reply(
+    
+    reply = send_message_with_reply(
         signing_key=current_user.get_signing_key(), message_type=GetUsersMessage
     )
+    reply = type("message", (object,), dict(reply))()
+    return reply.users
 
 
 def get_user(user_id: int, current_user: UserPrivate) -> User:
