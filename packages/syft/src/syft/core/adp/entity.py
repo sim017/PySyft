@@ -3,6 +3,8 @@
 # - add comments inline explaining each piece
 # - add a unit test for each method (at least)
 
+# This file defines an Entity class which is created for every data subject to protect its private information.
+
 # future
 from __future__ import annotations
 

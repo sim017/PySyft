@@ -4,6 +4,9 @@
 # - add comments inline explaining each piece
 # - add a unit test for each method (at least)
 
+# This file defines individual Renyi DP Mechanism which is used for personalized accounting.
+# The mechanism is based on the paper "Individual Privacy Accounting via a Rényi Filter" (https://arxiv.org/pdf/2008.11193.pdf)
+
 # stdlib
 from functools import lru_cache
 from typing import Dict
@@ -32,6 +35,7 @@ def listtonumpy64(value: List) -> np.int64:
     return np.int64(value)
 
 
+# this formula comes from example 2.8 of the above mentioned paper.
 # returns the privacy budget spent by each entity
 @lru_cache(maxsize=None)
 def _individual_RDP_gaussian(
@@ -98,6 +102,13 @@ class iDPGaussianMechanism(Mechanism):
         use_fdp_based_rdp_to_approx_dp_conversion: bool = False,
         user_key: Optional[VerifyKey] = None,
     ):
+        """
+            'sigma' -- is the normalized noise level: std divided by global L2 sensitivity
+            'squared_l2_norm' -- l2 norm of output of a query on a data point
+            'squared_l2_norm_upper_bound' -- budget norm
+            'L' -- is the Lipschitz constant of query with respect to the output of query on a data point
+            'name' -- is the name of mechanism for answering queries
+        """
 
         # the sigma parameter is the std of the noise divide by the l2 sensitivity
         Mechanism.__init__(self)

@@ -4,6 +4,8 @@
 # - add comments inline explaining each piece
 # - add a unit test for each method (at least)
 
+# This file defines publish method which publishes the result with noise added to it
+
 # stdlib
 from copy import deepcopy
 import random
@@ -138,6 +140,9 @@ def get_mechanism_for_entity(
 ]:
     """
     Iterates over scalars computing its value and L attribute and builds its mechanism.
+    'scalars' -- keep track of the current value, and a data-independent min-val and max-val. It depends on schema of data.
+    'sigma' -- is the std of the noise divide by the l2 sensitivity
+    'public_only' -- if it's true, public value is used for value
     """
     m_id = "ms_"
     for s in scalars:
@@ -194,7 +199,12 @@ def get_mechanism_for_entity(
 def get_all_entity_mechanisms(
     scalars: TypeList[Any], sigma: float = 1.5, public_only: bool = False
 ) -> TypeDict[Entity, Any]:
-    "Generates a list of entities by processing the given scalars list."
+    """
+    Generates a list of entities by processing the given scalars list.
+    'scalars' -- keep track of the current value, and a data-independent min-val and max-val. It depends on schema of data.
+    'sigma' -- is the std of the noise divide by the l2 sensitivity
+    'public_only' -- if it's true, public value is used for value
+    """
     entities = set()
     for s in scalars:
         for i_s in s.input_scalars:

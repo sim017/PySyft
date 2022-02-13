@@ -4,6 +4,8 @@
 # - add comments inline explaining each piece
 # - add a unit test for each method (at least)
 
+# This file defines an Adversarial Accountant class that keeps track of budget and maintains a privacy ledger. 
+
 # stdlib
 import math
 from typing import Dict as TypeDict
@@ -32,7 +34,11 @@ class AdversarialAccountant:
     def __init__(
         self, db_engine: Engine = None, max_budget: float = 10, delta: float = 1e-6
     ) -> None:
-
+        """
+        'db_engine' -- Its the home base for actual database. It's the starting point of the SQLAlchemy application
+        'max_budget' -- maximum privacy budget of a domain node
+        'delta' -- probability of information accidentally being leaked
+        """
         if db_engine is not None:
             # this is a database-backed lookup table
             # maps an entity to an actual budget
@@ -76,7 +82,10 @@ class AdversarialAccountant:
         user_key: Optional[VerifyKey] = None,
         returned_epsilon_is_private: bool = False,
     ) -> float:
-
+        """
+            'returned_epsilon_is_private' -- if its true, a private value is assigned to mechanism's value, else a public value.
+        """
+        
         # compose them with the transformation: compose
         compose = Composition()
 
