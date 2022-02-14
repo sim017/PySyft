@@ -32,10 +32,14 @@ from .entity import DataSubjectGroup
 from .entity import Entity
 from .idp_gaussian_mechanism import iDPGaussianMechanism
 
-
+# Composing individual privacy parameters; fully adaptive composition for RDP
 def compose_mechanisms(
     mechanisms: Iterable[iDPGaussianMechanism], delta: float
 ) -> float:
+    """
+    'mechanisms' -- sequence of Gaussian mechanisms satisfying individual RDP
+    'delta' -- probability of information accidentally being leaked
+    """
     sigmas = list()
     squared_l2_norms = list()
     squared_l2_norm_upper_bounds = list()
