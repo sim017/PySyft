@@ -10,11 +10,16 @@ import matplotlib.pyplot as plt
 from minio import Minio
 from minio.error import S3Error
 
+"""
+docker run -p 9000:9000 -p 9001:9001   quay.io/minio/minio server /data --console-address ":9001"
+pip install minio
+"""
+
 files = [
-    ("1GB", 1024**3),
-    ("5GB", (1024**3) * 5),
-    ("10GB", 1024**3 * 10),
-    ("15GB", 1024**3 * 15),
+    ("1GB", 1024 ** 3),
+    ("5GB", (1024 ** 3) * 5),
+    ("10GB", 1024 ** 3 * 10),
+    ("15GB", 1024 ** 3 * 15),
 ]
 
 
