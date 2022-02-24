@@ -263,11 +263,10 @@ if __name__ == "__main__":
     create_bucket()
 
     # Upload file
-    # upload_files()
+    upload_files()
 
     # Multipart Upload
-    print("Multipart Upload.........")
     filename = "dummydata.bin"
-    file_size = 10 * 1024**3  # 20GB
+    file_size = 10 * 1024**3  # 10GB
     create_dummy_data(filename, file_size)
     multipart_data_upload(filename)
