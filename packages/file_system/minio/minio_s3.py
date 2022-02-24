@@ -17,6 +17,7 @@ Password: minio123
 
 # stdlib
 from io import BytesIO
+import os
 
 # third party
 import boto3
@@ -58,6 +59,30 @@ def create_bucket():
     print("-------------List available buckets------------\n")
     print(resp)
     print("-----------------------------------------------")
+
+
+def read_chunks(fp, chunk_size=1024**3):
+    """Read data in chunks from the file."""
+    while True:
+        data = fp.read(chunk_size)
+        if not data:
+            break
+        yield data
+
+
+def create_dummy_data(filename, file_size):
+    chunk_size = 5 * 1024**3  # 5GB
+    # Creating file in chunk size of 5GB
+    print("Creating Dummy Data....")
+    curr_file_size = 0
+    while curr_file_size < file_size:
+        with open(filename, "ab") as fp:
+            fp.write(bytes(chunk_size))
+        curr_file_size += chunk_size
+
+    print(
+        f"Dummy file created. Filename: {filename}. Filesize: {curr_file_size//1024**3}GB"
+    )
 
 
 def upload_files():
@@ -181,9 +206,59 @@ def upload_files():
     print("-----------------------------------------------\n")
 
 
+def multipart_data_upload(filename):
+    file_size = os.path.getsize(filename)
+    max_chunk_size = 2 * 1024**3  # 2GB
+    total_parts = file_size / max_chunk_size
+    key = f"mutipart/{filename}-{file_size//max_chunk_size}"
+    res = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key)
+    upload_id = res["UploadId"]
+    part_no = 1
+    parts = []
+    print("Starting Upload....")
+    with open(filename, "rb") as fp:
+        for file_data in read_chunks(fp, max_chunk_size):  # Read data in chunks
+            signed_url = s3_client.generate_presigned_url(  # Creating presigned urls
+                ClientMethod="upload_part",
+                Params={
+                    "Bucket": bucket_name,
+                    "Key": key,
+                    "UploadId": upload_id,
+                    "PartNumber": part_no,
+                },
+                ExpiresIn=300,
+            )
+            res = requests.put(signed_url, data=file_data)
+            assert res.status_code == 200  # Check if the request was successful
+            etag = res.headers["ETag"]
+            parts.append(
+                {"ETag": etag, "PartNumber": part_no}
+            )  # maintain list of part no and ETag
+            print(
+                f"Parts Uploaded: {part_no}/{total_parts}, Progess: {100*round(part_no/total_parts, 2)}/100.0",
+                end="\r",
+            )
+            part_no += 1
+
+    res = s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        MultipartUpload={"Parts": parts},
+        UploadId=upload_id,
+    )
+    print("\nUpload completed")
+
+
 if __name__ == "__main__":
     # Create bucket
     create_bucket()
 
     # Upload file
     upload_files()
+
+    # Multipart Upload
+    print("Multipart Upload.........")
+    filename = "dummydata.bin"
+    file_size = 20 * 1024**3  # 20GB
+    create_dummy_data(filename, file_size)
+    multipart_data_upload(filename)
